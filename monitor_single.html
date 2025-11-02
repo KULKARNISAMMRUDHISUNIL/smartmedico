@@ -50,6 +50,13 @@
       const p = snap.data();
       fetchThingSpeak(p);
     }
+async function fetchThingSpeak(p) {
+  const url = `https://api.thingspeak.com/channels/${p.channel}/feeds.json?api_key=${p.api}&results=1&_=${Date.now()}`;
+  console.log("Fetching from:", url); // 👈 Add this line
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    console.log("ThingSpeak data:", data); // 👈 Add this too
 
     // ✅ Function to fetch that specific patient’s ThingSpeak data
     async function fetchThingSpeak(p) {
@@ -99,4 +106,5 @@
 
 </body>
 </html>
+
 
