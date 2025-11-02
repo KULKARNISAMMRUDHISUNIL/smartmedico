@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -8,62 +9,63 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f4f7fa;
+      background: linear-gradient(120deg, #e0f7fa, #f9f9f9);
       text-align: center;
       padding: 20px;
     }
-    .dashboard h1 {
-      color: #333;
+    .dashboard {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      padding: 25px;
+      max-width: 1000px;
+      margin: auto;
     }
     .card {
       display: inline-block;
-      background: white;
+      background: #f9f9f9;
       padding: 15px;
       margin: 10px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      min-width: 200px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      width: 220px;
     }
     #charts {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 15px;
-      margin-top: 20px;
+      margin-top: 25px;
     }
     iframe {
       border: 1px solid #ccc;
       border-radius: 10px;
     }
-    .nav-buttons {
-      margin-top: 30px;
-    }
-    .nav-buttons button {
-      margin: 5px;
-      padding: 10px 15px;
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
       border: none;
-      background-color: #0078d7;
+      border-radius: 8px;
+      background-color: #009688;
       color: white;
-      border-radius: 6px;
       cursor: pointer;
-      font-size: 16px;
     }
-    .nav-buttons button:hover {
-      background-color: #005fa3;
+    button:hover {
+      background-color: #00796b;
     }
   </style>
 </head>
 <body>
   <div class="dashboard">
-    <h1>Live Patient Monitor</h1>
+    <h1>🩺 Live Patient Monitor</h1>
     <div id="patientInfo"></div>
     <div id="data">Loading...</div>
     <div id="charts"></div>
 
-    <div class="nav-buttons">
-      <button onclick="window.location.href='graph.html'">📊 View Graph</button>
-      <button onclick="window.location.href='index.html'">🏠 Home</button>
-    </div>
+```
+<button onclick="window.location.href='index.html'">🏠 Home</button>
+```
+
   </div>
 
   <script type="module">
@@ -79,7 +81,7 @@
       throw new Error("No patient ID found in URL.");
     }
 
-    // ✅ Load patient info from Firestore
+    // ✅ Fetch patient data from Firestore
     async function loadPatient() {
       try {
         const ref = doc(db, "patients", patientId);
@@ -102,7 +104,7 @@
       }
     }
 
-    // ✅ Fetch ThingSpeak data for the patient’s assigned channel
+    // ✅ Fetch ThingSpeak data
     async function fetchThingSpeak(p) {
       const dataDiv = document.getElementById("data");
       const url = `https://api.thingspeak.com/channels/${p.channel}/feeds.json?api_key=${p.api}&results=1&_=${Date.now()}`;
@@ -110,7 +112,6 @@
 
       try {
         const res = await fetch(url);
-        if (!res.ok) throw new Error("ThingSpeak request failed");
         const data = await res.json();
         console.log("ThingSpeak data:", data);
 
@@ -119,32 +120,31 @@
           const temp = parseFloat(feed.field2);
 
           dataDiv.innerHTML = `
-            <h2>${p.name} - Bed ${p.bed}</h2>
             <div class="card"><strong>🚶 Motion:</strong> ${feed.field1 == 1 ? "Detected" : "No Motion"}</div>
             <div class="card"><strong>🌡️ Temperature:</strong> ${temp === -127 ? "Sensor error / No data" : temp + " °C"}</div>
             <div class="card"><strong>💓 Heartbeat:</strong> ${feed.field3 || "N/A"} bpm</div>
             <div class="card"><strong>🫁 SpO₂:</strong> ${feed.field4 || "N/A"} %</div>
           `;
 
-          // ✅ Show charts only if data exists
+          // ✅ Embed live charts (works for private channels too)
           const chartsDiv = document.getElementById("charts");
           chartsDiv.innerHTML = `
             <h3>📈 Live Graphs</h3>
             <iframe width="450" height="260"
-              src="https://thingspeak.com/channels/${p.channel}/charts/1?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=30&title=Motion&type=line">
+              src="https://thingspeak.com/channels/${p.channel}/charts/1?api_key=${p.api}&bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=30&title=Motion&type=line">
             </iframe>
             <iframe width="450" height="260"
-              src="https://thingspeak.com/channels/${p.channel}/charts/2?bgcolor=%23ffffff&color=%2300aaff&dynamic=true&results=30&title=Temperature&type=line">
+              src="https://thingspeak.com/channels/${p.channel}/charts/2?api_key=${p.api}&bgcolor=%23ffffff&color=%2300aaff&dynamic=true&results=30&title=Temperature&type=line">
             </iframe>
             <iframe width="450" height="260"
-              src="https://thingspeak.com/channels/${p.channel}/charts/3?bgcolor=%23ffffff&color=%23ff9900&dynamic=true&results=30&title=Heartbeat&type=line">
+              src="https://thingspeak.com/channels/${p.channel}/charts/3?api_key=${p.api}&bgcolor=%23ffffff&color=%23ff9900&dynamic=true&results=30&title=Heartbeat&type=line">
             </iframe>
             <iframe width="450" height="260"
-              src="https://thingspeak.com/channels/${p.channel}/charts/4?bgcolor=%23ffffff&color=%2300cc44&dynamic=true&results=30&title=SpO2&type=line">
+              src="https://thingspeak.com/channels/${p.channel}/charts/4?api_key=${p.api}&bgcolor=%23ffffff&color=%2300cc44&dynamic=true&results=30&title=SpO2&type=line">
             </iframe>
           `;
         } else {
-          dataDiv.innerHTML = `<p>No data available yet for this channel.</p>`;
+          dataDiv.innerHTML = "<p>No data available yet.</p>";
         }
       } catch (err) {
         console.error("ThingSpeak fetch error:", err);
@@ -152,8 +152,9 @@
       }
     }
 
-    // ✅ Start process
+    // ✅ Load on page start
     loadPatient();
   </script>
+
 </body>
 </html>
