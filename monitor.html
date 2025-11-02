@@ -16,45 +16,48 @@
       <button onclick="window.location.href='index.html'">🏠 Home</button>
     </div>
   </div>
+<script type="module">
+  import { db } from "./firebase.js";
+  import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-  <script type="module">
-    import { db } from "./firebase.js";
-    import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+  async function loadPatients() {
+    const listDiv = document.getElementById("patientsList");
+    listDiv.innerHTML = "<p>Loading patients...</p>";
 
-    async function loadPatients() {
-      const listDiv = document.getElementById("patientsList");
-      listDiv.innerHTML = "<p>Loading patients...</p>";
-
-      const querySnapshot = await getDocs(collection(db, "patients"));
-      if (querySnapshot.empty) {
-        listDiv.innerHTML = "<p>No patients found.</p>";
-        return;
-      }
-
-      listDiv.innerHTML = "";
-      querySnapshot.forEach((doc) => {
-        const p = doc.data();
-        const card = document.createElement("div");
-        card.classList.add("card");
-
-        card.innerHTML = `
-          <h3>${p.name} (Age: ${p.age})</h3>
-          <p>🛏️ Bed No: ${p.bed}</p>
-          <p>Channel: ${p.channel}</p>
-          <p>API Key: ${p.api}</p>
-          <button onclick="viewMonitor('${doc.id}')">View Live Data</button>
-        `;
-
-        listDiv.appendChild(card);
-      });
+    const querySnapshot = await getDocs(collection(db, "patients"));
+    if (querySnapshot.empty) {
+      listDiv.innerHTML = "<p>No patients found.</p>";
+      return;
     }
 
-    window.viewMonitor = (id) => {
-      localStorage.setItem("patientId", id);
-      window.location.href = "monitor_single.html";
-    };
+    listDiv.innerHTML = "";
+    querySnapshot.forEach((doc) => {
+      const p = doc.data();
+      const card = document.createElement("div");
+      card.classList.add("card");
 
-    loadPatients();
-  </script>
+      card.innerHTML = `
+        <h3>${p.name} (Age: ${p.age})</h3>
+        <p>🛏️ Bed No: ${p.bed}</p>
+        <p>Channel: ${p.channel}</p>
+        <p>API Key: ${p.api}</p>
+        <button onclick="viewMonitor('${doc.id}')">View Live Data</button>
+      `;
+
+      listDiv.appendChild(card);
+    });
+  }
+
+  // ✅ Place this function right here — after loadPatients()
+  window.viewMonitor = (id) => {
+    // Redirect to monitor_single.html with the patient id in the URL
+    window.location.href = `monitor_single.html?id=${id}`;
+  };
+
+  // Call the function to load patients when page opens
+  loadPatients();
+</script>
+
 </body>
 </html>
+
