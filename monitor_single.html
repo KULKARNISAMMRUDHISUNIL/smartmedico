@@ -79,14 +79,19 @@
         const data = await res.json();
         console.log("ThingSpeak data:", data);
 
-        if (data.feeds && data.feeds.length > 0) {
-          const feed = data.feeds[0];
-          dataDiv.innerHTML = `
-            <div class="card"><strong>🚶 Motion:</strong> ${feed.field1 == 1 ? "Detected" : "No Motion"}</div>
-            <div class="card"><strong>🌡️ Temperature:</strong> ${feed.field2} °C</div>
-            <div class="card"><strong>💓 Heartbeat:</strong> ${feed.field3 || "N/A"} bpm</div>
-            <div class="card"><strong>🫁 SpO₂:</strong> ${feed.field4 || "N/A"} %</div>
-          `;
+      if (data.feeds && data.feeds.length > 0) {
+  const feed = data.feeds[0];
+  const temp = parseFloat(feed.field2);
+
+  document.getElementById("data").innerHTML = `
+    <h2>${p.name} - Bed ${p.bedNumber}</h2>
+    <div class="card"><strong>🚶 Motion:</strong> ${feed.field1 == 1 ? "Detected" : "No Motion"}</div>
+    <div class="card"><strong>🌡️ Temperature:</strong> ${temp === -127 ? "Sensor error / No data" : temp + " °C"}</div>
+    <div class="card"><strong>💓 Heartbeat:</strong> ${feed.field3 || "N/A"} bpm</div>
+    <div class="card"><strong>🫁 SpO₂:</strong> ${feed.field4 || "N/A"} %</div>
+  `;
+}
+
 
           // ✅ Embed ThingSpeak charts
           const chartsDiv = document.getElementById("charts");
@@ -119,3 +124,4 @@
   </script>
 </body>
 </html>
+
