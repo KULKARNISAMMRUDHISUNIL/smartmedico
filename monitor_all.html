@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All Beds Monitor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f7fa;
+      color: #333;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #0077b6;
+    }
+    .bed-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .bed {
+      background-color: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      width: 320px;
+      padding: 15px;
+    }
+    .bed h2 {
+      color: #023e8a;
+      margin-bottom: 10px;
+    }
+    .card {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 10px;
+      margin: 10px 0;
+      background-color: #fafafa;
+    }
+  </style>
+</head>
+<body>
+  <h1>🏥 Real-Time Bed Monitoring</h1>
+  <div class="bed-container" id="bedData"></div>
+
+  <script>
+    // Your ThingSpeak channel info
+    const beds = [
+      {
+        name: "Bed 101 - Sammrudhi",
+        channelId: "3142377", // your channel ID
+        readApiKey: "EY3HN582YUJRVYV8"
+      },
+      {
+        name: "Bed 102 - Teammate",
+        channelId: "3141853",
+        readApiKey: "XJR7ILKSIZ7WCCS5"
+      }
+    ];
+
+    async function fetchThingSpeakData(bed) {
+      const url = `https://api.thingspeak.com/channels/${bed.channelId}/feeds.json?api_key=${bed.readApiKey}&results=1&_=${Date.now()}`;
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.feeds && data.feeds.length > 0) {
+          const feed = data.feeds[0];
+          return {
+            name: bed.name,
+            motion: feed.field1,
+            temperature: feed.field2,
+            heartbeat: feed.field3,
+            spo2: feed.field4,
+            time: new Date(feed.created_at).toLocaleString()
+          };
+        } else {
+          return { name: bed.name, error: "No data yet" };
+        }
+      } catch (err) {
+        console.error(err);
+        return { name: bed.name, error: "Failed to fetch data" };
+      }
+    }
+
+    async function updateDashboard() {
+      const container = document.getElementById("bedData");
+      container.innerHTML = ""; // clear old data
+
+      for (const bed of beds) {
+        const info = await fetchThingSpeakData(bed);
+        const div = document.createElement("div");
+        div.className = "bed";
+
+        if (info.error) {
+          div.innerHTML = `<h2>${info.name}</h2><p>${info.error}</p>`;
+        } else {
+          div.innerHTML = `
+            <h2>${info.name}</h2>
+            <div class="card"><strong>🚶 Motion:</strong> ${info.motion == 1 ? "Detected" : "No Motion"}</div>
+            <div class="card"><strong>🌡️ Temperature:</strong> ${info.temperature} °C</div>
+            <div class="card"><strong>💓 Heartbeat:</strong> ${info.heartbeat || "N/A"} bpm</div>
+            <div class="card"><strong>🫁 SpO₂:</strong> ${info.spo2 || "N/A"} %</div>
+            <p><em>Last updated: ${info.time}</em></p>
+          `;
+        }
+
+        container.appendChild(div);
+      }
+    }
+
+    // Run immediately and refresh every 20 seconds
+    updateDashboard();
+    setInterval(updateDashboard, 20000);
+  </script>
+</body>
+</html>
