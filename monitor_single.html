@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Patient Monitor</title>
+  <title>Smart Health - Live Monitor</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -29,13 +29,15 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
+    // ✅ Your actual Firebase config
     const firebaseConfig = {
-      apiKey: "YOUR_FIREBASE_KEY",
-      authDomain: "YOUR_PROJECT.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      apiKey: "AIzaSyBI-DHfeIH0cGMTQx60SCk5SKzjWFH3RZs",
+      authDomain: "smart-health-monitoring-d1b63.firebaseapp.com",
+      projectId: "smart-health-monitoring-d1b63",
+      storageBucket: "smart-health-monitoring-d1b63.appspot.com",
+      messagingSenderId: "292788296841",
+      appId: "1:292788296841:web:5bd140a662f0ce64e1fa58",
+      measurementId: "G-LGR33JW2RX"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -50,7 +52,7 @@
       throw new Error("No patient ID found.");
     }
 
-    // 2️⃣ Fetch that patient's data
+    // 2️⃣ Fetch that patient's data from Firestore
     const ref = doc(db, "patients", patientId);
     const snap = await getDoc(ref);
 
@@ -71,7 +73,7 @@
         if (data.feeds && data.feeds.length > 0) {
           const feed = data.feeds[0];
           document.getElementById("data").innerHTML = `
-            <h2>${p.name} - Bed ${p.bedNumber}</h2>
+            <h2>${p.name} - Bed ${p.bed}</h2>
             <div class="card"><strong>🚶 Motion:</strong> ${feed.field1 == 1 ? "Detected" : "No Motion"}</div>
             <div class="card"><strong>🌡️ Temperature:</strong> ${feed.field2} °C</div>
             <div class="card"><strong>💓 Heartbeat:</strong> ${feed.field3 || "N/A"} bpm</div>
@@ -80,6 +82,10 @@
         } else {
           document.getElementById("data").innerHTML = `<p>No data available.</p>`;
         }
+
+        // 🔄 Auto-refresh every 15s
+        setTimeout(() => fetchData(p), 15000);
+
       } catch (error) {
         console.error(error);
         document.getElementById("data").innerText = "Error loading ThingSpeak data.";
