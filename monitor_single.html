@@ -121,7 +121,7 @@
 
           dataDiv.innerHTML = `
             <div class="card"><strong>🚶 Motion:</strong> ${feed.field1 == 1 ? "Detected" : "No Motion"}</div>
-            <div class="card"><strong>🌡️ Temperature:</strong> ${temp === -127 ? "Sensor error / No data" : temp + " °C"}</div>
+            <div class="card"><strong>🌡️ Skin Temperature:</strong> ${temp === -127 ? "Sensor error / No data" : temp + " °C"}</div>
             <div class="card"><strong>💓 Heartbeat:</strong> ${feed.field3 || "N/A"} bpm</div>
             <div class="card"><strong>🫁 SpO₂:</strong> ${feed.field4 || "N/A"} %</div>
           `;
@@ -158,3 +158,4 @@
 
 </body>
 </html>
+
