@@ -6,6 +6,24 @@
   <title>Smart Health - Live Monitor</title>
   <link rel="stylesheet" href="style.css" />
   <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f7fa;
+      text-align: center;
+      padding: 20px;
+    }
+    .dashboard h1 {
+      color: #333;
+    }
+    .card {
+      display: inline-block;
+      background: white;
+      padding: 15px;
+      margin: 10px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      min-width: 200px;
+    }
     #charts {
       display: flex;
       flex-wrap: wrap;
@@ -16,6 +34,22 @@
     iframe {
       border: 1px solid #ccc;
       border-radius: 10px;
+    }
+    .nav-buttons {
+      margin-top: 30px;
+    }
+    .nav-buttons button {
+      margin: 5px;
+      padding: 10px 15px;
+      border: none;
+      background-color: #0078d7;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .nav-buttons button:hover {
+      background-color: #005fa3;
     }
   </style>
 </head>
@@ -45,7 +79,7 @@
       throw new Error("No patient ID found in URL.");
     }
 
-    // ✅ Fetch patient data from Firestore
+    // ✅ Load patient info from Firestore
     async function loadPatient() {
       try {
         const ref = doc(db, "patients", patientId);
@@ -68,7 +102,7 @@
       }
     }
 
-    // ✅ Fetch from ThingSpeak
+    // ✅ Fetch ThingSpeak data for the patient’s assigned channel
     async function fetchThingSpeak(p) {
       const dataDiv = document.getElementById("data");
       const url = `https://api.thingspeak.com/channels/${p.channel}/feeds.json?api_key=${p.api}&results=1&_=${Date.now()}`;
@@ -76,24 +110,23 @@
 
       try {
         const res = await fetch(url);
+        if (!res.ok) throw new Error("ThingSpeak request failed");
         const data = await res.json();
         console.log("ThingSpeak data:", data);
 
-      if (data.feeds && data.feeds.length > 0) {
-  const feed = data.feeds[0];
-  const temp = parseFloat(feed.field2);
+        if (data.feeds && data.feeds.length > 0) {
+          const feed = data.feeds[0];
+          const temp = parseFloat(feed.field2);
 
-  document.getElementById("data").innerHTML = `
-    <h2>${p.name} - Bed ${p.bedNumber}</h2>
-    <div class="card"><strong>🚶 Motion:</strong> ${feed.field1 == 1 ? "Detected" : "No Motion"}</div>
-    <div class="card"><strong>🌡️ Temperature:</strong> ${temp === -127 ? "Sensor error / No data" : temp + " °C"}</div>
-    <div class="card"><strong>💓 Heartbeat:</strong> ${feed.field3 || "N/A"} bpm</div>
-    <div class="card"><strong>🫁 SpO₂:</strong> ${feed.field4 || "N/A"} %</div>
-  `;
-}
+          dataDiv.innerHTML = `
+            <h2>${p.name} - Bed ${p.bed}</h2>
+            <div class="card"><strong>🚶 Motion:</strong> ${feed.field1 == 1 ? "Detected" : "No Motion"}</div>
+            <div class="card"><strong>🌡️ Temperature:</strong> ${temp === -127 ? "Sensor error / No data" : temp + " °C"}</div>
+            <div class="card"><strong>💓 Heartbeat:</strong> ${feed.field3 || "N/A"} bpm</div>
+            <div class="card"><strong>🫁 SpO₂:</strong> ${feed.field4 || "N/A"} %</div>
+          `;
 
-
-          // ✅ Embed ThingSpeak charts
+          // ✅ Show charts only if data exists
           const chartsDiv = document.getElementById("charts");
           chartsDiv.innerHTML = `
             <h3>📈 Live Graphs</h3>
@@ -111,7 +144,7 @@
             </iframe>
           `;
         } else {
-          dataDiv.innerHTML = "<p>No data available yet.</p>";
+          dataDiv.innerHTML = `<p>No data available yet for this channel.</p>`;
         }
       } catch (err) {
         console.error("ThingSpeak fetch error:", err);
@@ -119,9 +152,8 @@
       }
     }
 
-    // ✅ Load patient on page start
+    // ✅ Start process
     loadPatient();
   </script>
 </body>
 </html>
-
