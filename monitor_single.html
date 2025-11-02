@@ -4,91 +4,104 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Smart Health - Live Monitor</title>
+  <link rel="stylesheet" href="style.css" />
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f7fa;
-      padding: 20px;
-      text-align: center;
+    #charts {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 20px;
     }
-    .card {
-      display: inline-block;
-      background: white;
-      padding: 20px;
-      margin: 10px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    iframe {
+      border: 1px solid #ccc;
+      border-radius: 10px;
     }
   </style>
 </head>
 <body>
-  <h1>Patient Bed Monitoring</h1>
-  <div id="data">Loading...</div>
+  <div class="dashboard">
+    <h1>Live Patient Monitor</h1>
+    <div id="patientInfo"></div>
+    <div id="data">Loading...</div>
+    <div id="charts"></div>
+
+    <div class="nav-buttons">
+      <button onclick="window.location.href='graph.html'">📊 View Graph</button>
+      <button onclick="window.location.href='index.html'">🏠 Home</button>
+    </div>
+  </div>
 
   <script type="module">
     import { db } from "./firebase.js";
     import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-
-    const dataDiv = document.getElementById("data");
 
     // ✅ Get patient ID from URL
     const urlParams = new URLSearchParams(window.location.search);
     const patientId = urlParams.get("id");
 
     if (!patientId) {
-      dataDiv.innerText = "No patient ID provided.";
+      document.getElementById("data").innerText = "❌ No patient ID provided.";
       throw new Error("No patient ID found in URL.");
     }
 
-    // ✅ Fetch the patient’s Firestore data
-    const ref = doc(db, "patients", patientId);
-    const snap = await getDoc(ref);
+    // ✅ Fetch patient data from Firestore
+    async function loadPatient() {
+      try {
+        const ref = doc(db, "patients", patientId);
+        const snap = await getDoc(ref);
 
-    if (!snap.exists()) {
-      dataDiv.innerText = "Patient not found.";
-    } else {
-      const p = snap.data();
-      fetchThingSpeak(p);
+        if (!snap.exists()) {
+          document.getElementById("data").innerText = "❌ Patient not found.";
+          return;
+        }
+
+        const p = snap.data();
+        document.getElementById("patientInfo").innerHTML = `
+          <h2>${p.name} (Age: ${p.age}, Bed: ${p.bed})</h2>
+        `;
+
+        await fetchThingSpeak(p);
+      } catch (err) {
+        console.error("Error loading patient:", err);
+        document.getElementById("data").innerText = "⚠️ Failed to load patient data.";
+      }
     }
-async function fetchThingSpeak(p) {
-  const url = `https://api.thingspeak.com/channels/${p.channel}/feeds.json?api_key=${p.api}&results=1&_=${Date.now()}`;
-  console.log("Fetching from:", url); // 👈 Add this line
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    console.log("ThingSpeak data:", data); // 👈 Add this too
 
-    // ✅ Function to fetch that specific patient’s ThingSpeak data
+    // ✅ Fetch from ThingSpeak
     async function fetchThingSpeak(p) {
+      const dataDiv = document.getElementById("data");
       const url = `https://api.thingspeak.com/channels/${p.channel}/feeds.json?api_key=${p.api}&results=1&_=${Date.now()}`;
+      console.log("Fetching from:", url);
+
       try {
         const res = await fetch(url);
         const data = await res.json();
+        console.log("ThingSpeak data:", data);
 
         if (data.feeds && data.feeds.length > 0) {
           const feed = data.feeds[0];
           dataDiv.innerHTML = `
-            <h2>${p.name} - Bed ${p.bed}</h2>
             <div class="card"><strong>🚶 Motion:</strong> ${feed.field1 == 1 ? "Detected" : "No Motion"}</div>
             <div class="card"><strong>🌡️ Temperature:</strong> ${feed.field2} °C</div>
             <div class="card"><strong>💓 Heartbeat:</strong> ${feed.field3 || "N/A"} bpm</div>
             <div class="card"><strong>🫁 SpO₂:</strong> ${feed.field4 || "N/A"} %</div>
           `;
 
-          // ✅ Add live charts for each field
+          // ✅ Embed ThingSpeak charts
           const chartsDiv = document.getElementById("charts");
           chartsDiv.innerHTML = `
             <h3>📈 Live Graphs</h3>
-            <iframe width="450" height="260" style="border:1px solid #ccc;" 
+            <iframe width="450" height="260"
               src="https://thingspeak.com/channels/${p.channel}/charts/1?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=30&title=Motion&type=line">
             </iframe>
-            <iframe width="450" height="260" style="border:1px solid #ccc;" 
+            <iframe width="450" height="260"
               src="https://thingspeak.com/channels/${p.channel}/charts/2?bgcolor=%23ffffff&color=%2300aaff&dynamic=true&results=30&title=Temperature&type=line">
             </iframe>
-            <iframe width="450" height="260" style="border:1px solid #ccc;" 
+            <iframe width="450" height="260"
               src="https://thingspeak.com/channels/${p.channel}/charts/3?bgcolor=%23ffffff&color=%23ff9900&dynamic=true&results=30&title=Heartbeat&type=line">
             </iframe>
-            <iframe width="450" height="260" style="border:1px solid #ccc;" 
+            <iframe width="450" height="260"
               src="https://thingspeak.com/channels/${p.channel}/charts/4?bgcolor=%23ffffff&color=%2300cc44&dynamic=true&results=30&title=SpO2&type=line">
             </iframe>
           `;
@@ -96,15 +109,13 @@ async function fetchThingSpeak(p) {
           dataDiv.innerHTML = "<p>No data available yet.</p>";
         }
       } catch (err) {
-        console.error(err);
-        dataDiv.innerText = "Error fetching ThingSpeak data.";
+        console.error("ThingSpeak fetch error:", err);
+        dataDiv.innerText = "⚠️ Error fetching ThingSpeak data.";
       }
     }
+
+    // ✅ Load patient on page start
+    loadPatient();
   </script>
 </body>
 </html>
-
-</body>
-</html>
-
-
