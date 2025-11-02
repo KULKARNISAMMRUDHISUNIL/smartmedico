@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Health - Graph</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg">
+  <div class="dashboard">
+    <h1>📈 Patient History</h1>
+    <canvas id="healthChart" width="700" height="400"></canvas>
+
+    <div class="nav-buttons">
+      <button onclick="window.location.href='monitor.html'">🔙 Back</button>
+      <button onclick="window.location.href='index.html'">🏠 Home</button>
+    </div>
+  </div>
+
+  <script>
+    const patient = JSON.parse(localStorage.getItem("patient"));
+    if (!patient) {
+      alert("No patient found!");
+      window.location.href = "index.html";
+    }
+
+    async function fetchHistory() {
+      const url = `https://api.thingspeak.com/channels/${patient.channel}/feeds.json?api_key=${patient.api}&results=10`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      const labels = data.feeds.map(f => new Date(f.created_at).toLocaleTimeString());
+      const motion = data.feeds.map(f => f.field1);
+      const temp = data.feeds.map(f => f.field2);
+
+      new Chart(document.getElementById('healthChart'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Motion', data: motion, borderColor: '#0078d7', fill: false, tension: 0.3 },
+            { label: 'Temperature (°C)', data: temp, borderColor: '#e67e22', fill: false, tension: 0.3 }
+          ]
+        }
+      });
+    }
+
+    fetchHistory();
+  </script>
+</body>
+</html>

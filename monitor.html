@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Health - Monitor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="dashboard">
+    <h1>Smart Health Dashboard</h1>
+    <div id="patientsList"></div>
+
+    <div class="nav-buttons">
+      <button onclick="window.location.href='graph.html'">📊 View Graph</button>
+      <button onclick="window.location.href='index.html'">🏠 Home</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { db } from "./firebase.js";
+    import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+    async function loadPatients() {
+      const listDiv = document.getElementById("patientsList");
+      listDiv.innerHTML = "<p>Loading patients...</p>";
+
+      const querySnapshot = await getDocs(collection(db, "patients"));
+      if (querySnapshot.empty) {
+        listDiv.innerHTML = "<p>No patients found.</p>";
+        return;
+      }
+
+      listDiv.innerHTML = "";
+      querySnapshot.forEach((doc) => {
+        const p = doc.data();
+        const card = document.createElement("div");
+        card.classList.add("card");
+
+        card.innerHTML = `
+          <h3>${p.name} (Age: ${p.age})</h3>
+          <p>🛏️ Bed No: ${p.bed}</p>
+          <p>Channel: ${p.channel}</p>
+          <p>API Key: ${p.api}</p>
+          <button onclick="viewMonitor('${doc.id}')">View Live Data</button>
+        `;
+
+        listDiv.appendChild(card);
+      });
+    }
+
+    window.viewMonitor = (id) => {
+      localStorage.setItem("patientId", id);
+      window.location.href = "monitor_single.html";
+    };
+
+    loadPatients();
+  </script>
+</body>
+</html>

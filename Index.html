@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Health - Register</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>🩺 Patient Registration</h1>
+    <input type="text" id="name" placeholder="Enter Patient Name" />
+    <input type="number" id="age" placeholder="Enter Age" />
+    <input type="text" id="room" placeholder="Enter Bed No (e.g., 101)" />
+    <button id="saveBtn">💾 Save & Monitor</button>
+    <button id="viewExisting">📋 View Existing Patient</button>
+  </div>
+
+  <script type="module">
+    import { db } from "./firebase.js";
+    import { collection, addDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+    const saveBtn = document.getElementById("saveBtn");
+    const viewExistingBtn = document.getElementById("viewExisting");
+
+    saveBtn.addEventListener("click", async () => {
+      const name = document.getElementById("name").value.trim();
+      const age = document.getElementById("age").value.trim();
+      const bedNo = document.getElementById("room").value.trim();
+
+      if (!name || !age || !bedNo) {
+        alert("⚠️ Please fill all required fields!");
+        return;
+      }
+
+      try {
+        const response = await fetch("./beds.json");
+        const beds = await response.json();
+
+        const bedData = beds[bedNo];
+        if (!bedData) {
+          alert("❌ Invalid bed number! Please enter a valid one.");
+          return;
+        }
+
+        const patient = {
+          name: name,
+          age: age,
+          bed: bedNo,
+          channel: bedData.channel,
+          api: bedData.api,
+          registeredAt: new Date().toISOString()
+        };
+
+        const docRef = await addDoc(collection(db, "patients"), patient);
+        localStorage.setItem("patient", JSON.stringify(patient));
+        localStorage.setItem("patientId", docRef.id);
+
+        alert(`✅ Patient ${name} registered successfully!`);
+        window.location.href = "monitor.html";
+
+      } catch (error) {
+        console.error("Error adding patient:", error);
+        alert("❌ Something went wrong while saving patient data!");
+      }
+    });
+
+    viewExistingBtn.addEventListener("click", () => {
+      const existing = localStorage.getItem("patient");
+      if (existing) {
+        window.location.href = "monitor.html";
+      } else {
+        alert("No existing patient found! Please register first.");
+      }
+    });
+  </script>
+</body>
+</html>

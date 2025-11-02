@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Health - Live Monitor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="dashboard">
+    <h1>Live Patient Monitor</h1>
+    <div id="patientInfo"></div>
+    <div id="data"></div>
+
+    <div class="nav-buttons">
+      <button onclick="window.location.href='graph.html'">📊 View Graph</button>
+      <button onclick="window.location.href='index.html'">🏠 Home</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { db } from "./firebase.js";
+    import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+    const patientId = localStorage.getItem("patientId");
+    if (!patientId) {
+      alert("No patient selected!");
+      window.location.href = "index.html";
+    }
+
+    async function loadPatient() {
+      const ref = doc(db, "patients", patientId);
+      const snap = await getDoc(ref);
+
+      if (!snap.exists()) {
+        alert("Patient not found!");
+        return;
+      }
+
+      const p = snap.data();
+      document.getElementById("patientInfo").innerHTML = `
+        <h3>${p.name} (Age: ${p.age}, Bed: ${p.bed})</h3>
+      `;
+
+      async function fetchData() {
+        const url = `https://api.thingspeak.com/channels/${p.channel}/feeds.json?api_key=${p.api}&results=1`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const feed = data.feeds[0];
+
+        document.getElementById("data").innerHTML = `
+          <div class="card">
+            <h3>🚶 Motion</h3>
+            <p>${feed.field1 == 1 ? "Motion Detected" : "No Motion"}</p>
+          </div>
+          <div class="card">
+            <h3>🌡️ Temperature</h3>
+            <p>${feed.field2} °C</p>
+          </div>
+        `;
+      }
+
+      fetchData();
+      setInterval(fetchData, 15000);
+    }
+
+    loadPatient();
+  </script>
+</body>
+</html>
